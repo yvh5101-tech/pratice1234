@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Word Nest — 영어 단어 학습</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a2e28;
+      --ink-soft: #3d5a52;
+      --paper: #e8f0ec;
+      --leaf: #1f7a5c;
+      --leaf-deep: #145a44;
+      --sun: #e8a317;
+      --sun-soft: #f5d78a;
+      --mist: rgba(255, 255, 255, 0.72);
+      --line: rgba(26, 46, 40, 0.12);
+      --shadow: 0 18px 40px rgba(20, 50, 40, 0.12);
+      --radius: 18px;
+      --font-display: "Fraunces", Georgia, serif;
+      --font-body: "Source Sans 3", "Apple SD Gothic Neo", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: var(--font-body);
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 0%, #c5e4d4 0%, transparent 55%),
+        radial-gradient(ellipse 70% 45% at 90% 10%, #f0e0b8 0%, transparent 50%),
+        linear-gradient(165deg, #dceee6 0%, #f3f1e8 45%, #e6efe9 100%);
+      background-attachment: fixed;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .wrap {
+      width: min(720px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2.5rem 0 4rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      animation: rise 0.6s ease both;
+    }
+
+    .brand {
+      font-family: var(--font-display);
+      font-size: clamp(2.4rem, 6vw, 3.4rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--leaf-deep);
+      line-height: 1.1;
+    }
+
+    .tagline {
+      margin-top: 0.55rem;
+      color: var(--ink-soft);
+      font-size: 1.05rem;
+    }
+
+    .mode-tabs {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+      animation: rise 0.7s ease both;
+    }
+
+    .mode-tabs button {
+      border: 1.5px solid var(--line);
+      background: var(--mist);
+      color: var(--ink-soft);
+      font: inherit;
+      font-weight: 600;
+      padding: 0.55rem 1.1rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+    }
+
+    .mode-tabs button:hover { transform: translateY(-1px); }
+    .mode-tabs button.active {
+      background: var(--leaf);
+      border-color: var(--leaf);
+      color: #fff;
+    }
+
+    .panel {
+      display: none;
+      animation: rise 0.45s ease both;
+    }
+    .panel.active { display: block; }
+
+    .flash-stage {
+      perspective: 1200px;
+      margin-bottom: 1.25rem;
+    }
+
+    .flash-card {
+      position: relative;
+      min-height: 280px;
+      transform-style: preserve-3d;
+      transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+      cursor: pointer;
+    }
+
+    .flash-card.flipped { transform: rotateY(180deg); }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: var(--radius);
+      background: var(--mist);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+
+    .face.back {
+      transform: rotateY(180deg);
+      background: linear-gradient(160deg, #f7faf8 0%, #e8f4ee 100%);
+    }
+
+    .badge {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--leaf);
+      margin-bottom: 0.85rem;
+    }
+
+    .word {
+      font-family: var(--font-display);
+      font-size: clamp(2.2rem, 7vw, 3.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .phonetic {
+      margin-top: 0.4rem;
+      color: var(--ink-soft);
+      font-size: 1.05rem;
+    }
+
+    .meaning {
+      font-size: clamp(1.35rem, 4vw, 1.75rem);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .example {
+      color: var(--ink-soft);
+      font-size: 1rem;
+      line-height: 1.5;
+      max-width: 28ch;
+    }
+
+    .hint {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: var(--ink-soft);
+      opacity: 0.8;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.65rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+
+    .btn {
+      border: none;
+      font: inherit;
+      font-weight: 600;
+      padding: 0.7rem 1.25rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.2s, opacity 0.2s;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    .btn-primary { background: var(--leaf); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--leaf-deep); }
+    .btn-ghost {
+      background: var(--mist);
+      color: var(--ink);
+      border: 1.5px solid var(--line);
+    }
+    .btn-know { background: var(--leaf); color: #fff; }
+    .btn-again { background: #c45c3e; color: #fff; }
+
+    .progress-bar {
+      height: 8px;
+      background: rgba(26, 46, 40, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--leaf), #2ea87a);
+      border-radius: inherit;
+      transition: width 0.35s ease;
+    }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--ink-soft);
+      font-size: 0.92rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .quiz-q {
+      background: var(--mist);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 1.75rem 1.5rem;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .quiz-q .word {
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+    }
+
+    .choices {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .choice {
+      text-align: left;
+      width: 100%;
+      border: 1.5px solid var(--line);
+      background: var(--mist);
+      color: var(--ink);
+      font: inherit;
+      font-weight: 500;
+      padding: 0.95rem 1.1rem;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    }
+
+    .choice:hover:not(:disabled) {
+      border-color: var(--leaf);
+      transform: translateX(3px);
+    }
+
+    .choice.correct {
+      background: #d4f0e2;
+      border-color: var(--leaf);
+      font-weight: 700;
+    }
+
+    .choice.wrong {
+      background: #f8e0d8;
+      border-color: #c45c3e;
+    }
+
+    .feedback {
+      min-height: 1.5rem;
+      text-align: center;
+      margin: 0.85rem 0 1rem;
+      font-weight: 600;
+    }
+    .feedback.ok { color: var(--leaf-deep); }
+    .feedback.no { color: #a63d22; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+    }
+
+    .stat {
+      text-align: center;
+      padding: 1rem 0.5rem;
+      background: var(--mist);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .stat strong {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      color: var(--leaf-deep);
+    }
+
+    .stat span {
+      font-size: 0.85rem;
+      color: var(--ink-soft);
+    }
+
+    .list-panel {
+      background: var(--mist);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+
+    .list-panel h2 {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .word-list {
+      list-style: none;
+      display: grid;
+      gap: 0.5rem;
+      max-height: 420px;
+      overflow: auto;
+    }
+
+    .word-list li {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.35rem 1rem;
+      padding: 0.7rem 0.85rem;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid transparent;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .word-list li:hover {
+      border-color: var(--line);
+      background: #fff;
+    }
+
+    .word-list .en {
+      font-weight: 700;
+      font-family: var(--font-display);
+    }
+
+    .word-list .ko { color: var(--ink-soft); font-size: 0.95rem; }
+    .word-list .pos {
+      grid-column: 2;
+      grid-row: 1 / 3;
+      align-self: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--leaf);
+      background: #d9efe4;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+    }
+
+    .result-box {
+      text-align: center;
+      padding: 2rem 1.25rem;
+      background: var(--mist);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .result-box h2 {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .hidden { display: none !important; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 520px) {
+      .stats { grid-template-columns: 1fr; }
+      .flash-card { min-height: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">Word Nest</div>
+      <p class="tagline">카드를 넘기고, 뜻을 맞히며 단어를 쌓아 보세요.</p>
+    </header>
+
+    <nav class="mode-tabs" aria-label="학습 모드">
+      <button type="button" class="active" data-mode="flash">플래시카드</button>
+      <button type="button" data-mode="quiz">퀴즈</button>
+      <button type="button" data-mode="list">단어장</button>
+    </nav>
+
+    <!-- 플래시카드 -->
+    <section id="panel-flash" class="panel active">
+      <div class="progress-bar" aria-hidden="true"><div class="progress-fill" id="flash-progress"></div></div>
+      <div class="meta">
+        <span id="flash-count">1 / 20</span>
+        <span id="flash-known">외움 0</span>
+      </div>
+
+      <div class="flash-stage">
+        <div class="flash-card" id="flash-card" role="button" tabindex="0" aria-label="카드 뒤집기">
+          <div class="face front">
+            <div class="badge" id="flash-pos">noun</div>
+            <div class="word" id="flash-word">apple</div>
+            <div class="phonetic" id="flash-phonetic">/ˈæpl/</div>
+            <p class="hint">클릭하거나 Space로 뒤집기</p>
+          </div>
+          <div class="face back">
+            <div class="badge">뜻</div>
+            <div class="meaning" id="flash-meaning">사과</div>
+            <p class="example" id="flash-example"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button type="button" class="btn btn-ghost" id="btn-prev">이전</button>
+        <button type="button" class="btn btn-again" id="btn-again">다시</button>
+        <button type="button" class="btn btn-know" id="btn-know">외웠어요</button>
+        <button type="button" class="btn btn-ghost" id="btn-next">다음</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><strong id="stat-total">20</strong><span>전체 단어</span></div>
+        <div class="stat"><strong id="stat-known">0</strong><span>외운 단어</span></div>
+        <div class="stat"><strong id="stat-remain">20</strong><span>남은 단어</span></div>
+      </div>
+    </section>
+
+    <!-- 퀴즈 -->
+    <section id="panel-quiz" class="panel">
+      <div class="progress-bar"><div class="progress-fill" id="quiz-progress"></div></div>
+      <div class="meta">
+        <span id="quiz-count">문제 1 / 10</span>
+        <span id="quiz-score">점수 0</span>
+      </div>
+
+      <div id="quiz-play">
+        <div class="quiz-q">
+          <div class="badge">다음 단어의 뜻은?</div>
+          <div class="word" id="quiz-word">curious</div>
+          <div class="phonetic" id="quiz-phonetic"></div>
+        </div>
+        <div class="choices" id="quiz-choices"></div>
+        <p class="feedback" id="quiz-feedback"></p>
+        <div class="controls">
+          <button type="button" class="btn btn-primary hidden" id="btn-quiz-next">다음 문제</button>
+        </div>
+      </div>
+
+      <div id="quiz-result" class="result-box hidden">
+        <h2 id="result-title">퀴즈 완료!</h2>
+        <p id="result-detail" class="tagline" style="margin-bottom:1.25rem"></p>
+        <button type="button" class="btn btn-primary" id="btn-quiz-restart">다시 풀기</button>
+      </div>
+    </section>
+
+    <!-- 단어장 -->
+    <section id="panel-list" class="panel">
+      <div class="list-panel">
+        <h2>학습 단어 20개</h2>
+        <ul class="word-list" id="word-list"></ul>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const WORDS = [
+      { en: "curious", ko: "호기심이 많은", pos: "adj", phonetic: "/ˈkjʊəriəs/", example: "She is curious about everything." },
+      { en: "fragile", ko: "깨지기 쉬운", pos: "adj", phonetic: "/ˈfrædʒaɪl/", example: "Handle the glass carefully — it's fragile." },
+      { en: "ambition", ko: "야망, 포부", pos: "noun", phonetic: "/æmˈbɪʃn/", example: "His ambition is to become a doctor." },
+      { en: "hesitate", ko: "망설이다", pos: "verb", phonetic: "/ˈhezɪteɪt/", example: "Don't hesitate to ask for help." },
+      { en: "grateful", ko: "감사하는", pos: "adj", phonetic: "/ˈɡreɪtfl/", example: "I'm grateful for your support." },
+      { en: "overcome", ko: "극복하다", pos: "verb", phonetic: "/ˌəʊvəˈkʌm/", example: "She overcame many difficulties." },
+      { en: "reliable", ko: "믿을 수 있는", pos: "adj", phonetic: "/rɪˈlaɪəbl/", example: "He is a reliable friend." },
+      { en: "opportunity", ko: "기회", pos: "noun", phonetic: "/ˌɒpəˈtjuːnəti/", example: "This is a great opportunity." },
+      { en: "persuade", ko: "설득하다", pos: "verb", phonetic: "/pəˈsweɪd/", example: "I tried to persuade him to stay." },
+      { en: "enormous", ko: "거대한", pos: "adj", phonetic: "/ɪˈnɔːməs/", example: "They live in an enormous house." },
+      { en: "benefit", ko: "이익, 혜택", pos: "noun", phonetic: "/ˈbenɪfɪt/", example: "Exercise has many health benefits." },
+      { en: "ancient", ko: "고대의", pos: "adj", phonetic: "/ˈeɪnʃənt/", example: "We visited an ancient temple." },
+      { en: "compare", ko: "비교하다", pos: "verb", phonetic: "/kəmˈpeə/", example: "Don't compare yourself to others." },
+      { en: "essential", ko: "필수적인", pos: "adj", phonetic: "/ɪˈsenʃl/", example: "Water is essential for life." },
+      { en: "encourage", ko: "격려하다", pos: "verb", phonetic: "/ɪnˈkʌrɪdʒ/", example: "Teachers should encourage students." },
+      { en: "journey", ko: "여행, 여정", pos: "noun", phonetic: "/ˈdʒɜːni/", example: "Learning is a lifelong journey." },
+      { en: "patient", ko: "참을성 있는", pos: "adj", phonetic: "/ˈpeɪʃnt/", example: "Please be patient with me." },
+      { en: "achieve", ko: "성취하다", pos: "verb", phonetic: "/əˈtʃiːv/", example: "You can achieve your goals." },
+      { en: "surround", ko: "둘러싸다", pos: "verb", phonetic: "/səˈraʊnd/", example: "Trees surround the house." },
+      { en: "precious", ko: "소중한", pos: "adj", phonetic: "/ˈpreʃəs/", example: "Time is precious." },
+    ];
+
+    const STORAGE_KEY = "wordnest-known";
+
+    function loadKnown() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? new Set(JSON.parse(raw)) : new Set();
+      } catch {
+        return new Set();
+      }
+    }
+
+    function saveKnown(set) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
+    }
+
+    const state = {
+      mode: "flash",
+      flashIndex: 0,
+      known: loadKnown(),
+      quiz: {
+        order: [],
+        index: 0,
+        score: 0,
+        answered: false,
+      },
+    };
+
+    /* ---------- 모드 전환 ---------- */
+    document.querySelectorAll(".mode-tabs button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".mode-tabs button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.mode = btn.dataset.mode;
+        document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+        document.getElementById("panel-" + state.mode).classList.add("active");
+        if (state.mode === "quiz") startQuiz();
+        if (state.mode === "list") renderList();
+      });
+    });
+
+    /* ---------- 플래시카드 ---------- */
+    const cardEl = document.getElementById("flash-card");
+
+    function currentWord() {
+      return WORDS[state.flashIndex];
+    }
+
+    function renderFlash() {
+      const w = currentWord();
+      cardEl.classList.remove("flipped");
+      document.getElementById("flash-pos").textContent = w.pos;
+      document.getElementById("flash-word").textContent = w.en;
+      document.getElementById("flash-phonetic").textContent = w.phonetic;
+      document.getElementById("flash-meaning").textContent = w.ko;
+      document.getElementById("flash-example").textContent = w.example;
+      document.getElementById("flash-count").textContent = `${state.flashIndex + 1} / ${WORDS.length}`;
+      document.getElementById("flash-known").textContent = `외움 ${state.known.size}`;
+      document.getElementById("flash-progress").style.width =
+        ((state.flashIndex + 1) / WORDS.length) * 100 + "%";
+      document.getElementById("stat-total").textContent = WORDS.length;
+      document.getElementById("stat-known").textContent = state.known.size;
+      document.getElementById("stat-remain").textContent = WORDS.length - state.known.size;
+      document.getElementById("btn-prev").disabled = state.flashIndex === 0;
+      document.getElementById("btn-next").disabled = state.flashIndex === WORDS.length - 1;
+    }
+
+    function flipCard() {
+      cardEl.classList.toggle("flipped");
+    }
+
+    cardEl.addEventListener("click", flipCard);
+    cardEl.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "Enter") {
+        e.preventDefault();
+        flipCard();
+      }
+    });
+
+    document.getElementById("btn-prev").addEventListener("click", () => {
+      if (state.flashIndex > 0) {
+        state.flashIndex--;
+        renderFlash();
+      }
+    });
+
+    document.getElementById("btn-next").addEventListener("click", () => {
+      if (state.flashIndex < WORDS.length - 1) {
+        state.flashIndex++;
+        renderFlash();
+      }
+    });
+
+    document.getElementById("btn-know").addEventListener("click", () => {
+      state.known.add(currentWord().en);
+      saveKnown(state.known);
+      if (state.flashIndex < WORDS.length - 1) state.flashIndex++;
+      renderFlash();
+    });
+
+    document.getElementById("btn-again").addEventListener("click", () => {
+      state.known.delete(currentWord().en);
+      saveKnown(state.known);
+      if (state.flashIndex < WORDS.length - 1) state.flashIndex++;
+      renderFlash();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (state.mode !== "flash") return;
+      if (e.target.matches("input, textarea, button")) return;
+      if (e.code === "ArrowLeft") document.getElementById("btn-prev").click();
+      if (e.code === "ArrowRight") document.getElementById("btn-next").click();
+      if (e.code === "Space") {
+        e.preventDefault();
+        flipCard();
+      }
+    });
+
+    /* ---------- 퀴즈 ---------- */
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function startQuiz() {
+      state.quiz.order = shuffle(WORDS).slice(0, 10);
+      state.quiz.index = 0;
+      state.quiz.score = 0;
+      state.quiz.answered = false;
+      document.getElementById("quiz-play").classList.remove("hidden");
+      document.getElementById("quiz-result").classList.add("hidden");
+      document.getElementById("btn-quiz-next").classList.add("hidden");
+      renderQuiz();
+    }
+
+    function renderQuiz() {
+      const q = state.quiz.order[state.quiz.index];
+      const others = shuffle(WORDS.filter((w) => w.en !== q.en)).slice(0, 3);
+      const choices = shuffle([q, ...others]);
+
+      document.getElementById("quiz-word").textContent = q.en;
+      document.getElementById("quiz-phonetic").textContent = q.phonetic;
+      document.getElementById("quiz-count").textContent =
+        `문제 ${state.quiz.index + 1} / ${state.quiz.order.length}`;
+      document.getElementById("quiz-score").textContent = `점수 ${state.quiz.score}`;
+      document.getElementById("quiz-progress").style.width =
+        (state.quiz.index / state.quiz.order.length) * 100 + "%";
+      document.getElementById("quiz-feedback").textContent = "";
+      document.getElementById("quiz-feedback").className = "feedback";
+      document.getElementById("btn-quiz-next").classList.add("hidden");
+      state.quiz.answered = false;
+
+      const box = document.getElementById("quiz-choices");
+      box.innerHTML = "";
+      choices.forEach((c) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "choice";
+        btn.textContent = c.ko;
+        btn.addEventListener("click", () => answerQuiz(btn, c.en === q.en, q.ko));
+        box.appendChild(btn);
+      });
+    }
+
+    function answerQuiz(btn, correct, rightAnswer) {
+      if (state.quiz.answered) return;
+      state.quiz.answered = true;
+      const all = [...document.querySelectorAll("#quiz-choices .choice")];
+      all.forEach((b) => {
+        b.disabled = true;
+        if (b.textContent === rightAnswer) b.classList.add("correct");
+      });
+      const fb = document.getElementById("quiz-feedback");
+      if (correct) {
+        btn.classList.add("correct");
+        state.quiz.score++;
+        fb.textContent = "정답이에요!";
+        fb.className = "feedback ok";
+      } else {
+        btn.classList.add("wrong");
+        fb.textContent = `아쉽네요. 정답은 「${rightAnswer}」입니다.`;
+        fb.className = "feedback no";
+      }
+      document.getElementById("quiz-score").textContent = `점수 ${state.quiz.score}`;
+      document.getElementById("btn-quiz-next").classList.remove("hidden");
+    }
+
+    document.getElementById("btn-quiz-next").addEventListener("click", () => {
+      if (state.quiz.index < state.quiz.order.length - 1) {
+        state.quiz.index++;
+        renderQuiz();
+      } else {
+        showQuizResult();
+      }
+    });
+
+    function showQuizResult() {
+      document.getElementById("quiz-play").classList.add("hidden");
+      document.getElementById("quiz-result").classList.remove("hidden");
+      document.getElementById("quiz-progress").style.width = "100%";
+      const total = state.quiz.order.length;
+      const score = state.quiz.score;
+      document.getElementById("result-title").textContent =
+        score >= 8 ? "훌륭해요!" : score >= 5 ? "잘했어요!" : "조금 더 연습해 볼까요?";
+      document.getElementById("result-detail").textContent =
+        `${total}문제 중 ${score}문제 맞혔어요. (${Math.round((score / total) * 100)}%)`;
+    }
+
+    document.getElementById("btn-quiz-restart").addEventListener("click", startQuiz);
+
+    /* ---------- 단어장 ---------- */
+    function renderList() {
+      const ul = document.getElementById("word-list");
+      ul.innerHTML = WORDS.map(
+        (w) => `
+        <li>
+          <span class="en">${w.en}${state.known.has(w.en) ? " ✓" : ""}</span>
+          <span class="pos">${w.pos}</span>
+          <span class="ko">${w.ko} · ${w.phonetic}</span>
+        </li>`
+      ).join("");
+    }
+
+    renderFlash();
+    renderList();
+  </script>
+</body>
+</html>
